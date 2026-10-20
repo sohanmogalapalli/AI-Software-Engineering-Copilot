@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Software Engineering Copilot</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' },
+            slate: { 850: '#111827', 900: '#0b1120', 950: '#060a14' }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    /* Absolute viewport pinning: strictly prevents browser window scrolling */
+    html, body {
+      height: 100vh !important;
+      max-height: 100vh !important;
+      height: 100dvh !important;
+      width: 100vw !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      position: fixed !important;
+      top: 0; left: 0; right: 0; bottom: 0;
+    }
+    #app-root {
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #content-row {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: flex;
+      overflow: hidden;
+    }
+    #chat-messages {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    pre { position: relative; margin: 0.5rem 0; border-radius: 0.5rem; overflow: hidden; }
+    pre code.hljs { border-radius: 0.5rem; padding: 0.85rem; font-size: 0.8rem; }
+    .copy-code-btn {
+      position: absolute; top: 0.4rem; right: 0.4rem;
+      background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(71, 85, 105, 0.4);
+      color: #94a3b8; font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 0.25rem;
+      transition: all 0.2s; cursor: pointer;
+    }
+    .copy-code-btn:hover { background: #334155; color: #f8fafc; }
+    .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Root App Container -->
+  <div id="app-root">
+
+    <!-- Top Navbar (Fixed 52px, never moves) -->
+    <header class="h-[52px] bg-slate-900/95 border-b border-slate-800/80 px-5 flex items-center justify-between shrink-0 z-50">
+      <div class="flex items-center space-x-3">
+        <div class="p-1.5 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-lg shadow-md shadow-indigo-500/20">
+          <i data-lucide="cpu" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-sm font-bold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+              AI Software Engineering Copilot
+            </h1>
+            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Sub-10s</span>
+          </div>
+          <p class="text-[10px] text-slate-400">AST Program Analysis • Isolated Multi-Codebase Chats</p>
+        </div>
+      </div>
+      
+      <!-- Top Right Button -->
+      <div class="flex items-center space-x-2.5">
+        <button onclick="switchTab('repo')" class="text-xs bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 shadow-sm">
+          <i data-lucide="folder-git-2" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>Codebases & GitHub</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Row (Strictly flex-1 min-h-0) -->
+    <div id="content-row">
+
+      <!-- Left Sidebar: Conversations & Navigation -->
+      <aside class="w-72 bg-slate-900/75 border-r border-slate-800/80 flex flex-col justify-between shrink-0 h-full min-h-0 overflow-hidden">
+        
+        <!-- New Chat Button (Opens Codebase Picker Modal) -->
+        <div class="p-3 border-b border-slate-800/60 shrink-0">
+          <button onclick="openNewChatModal()" class="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition shadow-md shadow-indigo-600/25 active:scale-[0.98]">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>+ New Chat</span>
+          </button>
+        </div>
+
+        <!-- Scrollable Conversations List -->
+        <div class="flex-1 overflow-y-auto min-h-0 p-3 space-y-1.5 scrollbar-thin">
+          <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">
+            <span>Conversations</span>
+            <span id="chat-count-badge" class="font-mono text-indigo-400 text-xs">0</span>
+          </div>
+          
+          <div id="chats-list" class="space-y-1">
+            <!-- Dynamically populated chats -->
+          </div>
+        </div>
+
+        <!-- Tool Navigation Tabs -->
+        <div class="p-3 border-t border-slate-800/60 shrink-0 space-y-1">
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-2 mb-1">Codebase Tools</div>
+          <button onclick="switchTab('chat')" id="nav-chat" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600/10 text-indigo-400 border border-indigo-500/20">
+            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+            <span>Copilot Chat</span>
+          </button>
+          <button onclick="switchTab('search')" id="nav-search" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:bg-slate-850 hover:text-slate-200">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Hybrid Code Search</span>
+          </button>
+          <button onclick="switchTab('graph')" id="nav-graph" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:bg-slate-850 hover:text-slate-200">
+            <i data-lucide="network" class="w-3.5 h-3.5"></i>
+            <span>Dependency Graph</span>
+          </button>
+          <button onclick="switchTab('impact')" id="nav-impact" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:bg-slate-850 hover:text-slate-200">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+            <span>Change Impact</span>
+          </button>
+          <button onclick="switchTab('repo')" id="nav-repo" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:bg-slate-850 hover:text-slate-200">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
+            <span>Codebase Manager</span>
+          </button>
+        </div>
+
+        <!-- Telemetry Footer -->
+        <div class="p-2.5 bg-slate-950/80 border-t border-slate-800/80 text-[10px] space-y-1 shrink-0">
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Engine:</span>
+            <span class="text-indigo-400 font-mono font-medium">Local Ollama Qwen2.5</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Target Speed:</span>
+            <span class="text-emerald-400 font-mono font-medium">⚡ &lt; 10s Streaming</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Panel (Chat & Tools) -->
+      <main class="flex-1 bg-slate-950 flex flex-col h-full min-h-0 overflow-hidden relative">
+
+        <!-- TAB 1: COPILOT CHAT (Strictly min-h-0 flex-col) -->
+        <section id="tab-chat" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
+          
+          <!-- Active Chat Header (Fixed at top of chat area) -->
+          <div class="h-12 px-5 bg-slate-900/85 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-3 min-w-0">
+              <div class="flex items-center space-x-1.5 min-w-0">
+                <span id="active-chat-title" class="font-bold text-xs text-slate-100 truncate cursor-pointer hover:underline" title="Click to rename" onclick="renameCurrentChat()">Chat Session</span>
+                <button onclick="renameCurrentChat()" class="text-slate-500 hover:text-slate-300 text-xs shrink-0">
+                  <i data-lucide="edit-3" class="w-3 h-3"></i>
+                </button>
+              </div>
+              <span class="text-slate-700">|</span>
+              
+              <!-- Codebase Selector attached directly to THIS chat -->
+              <div class="flex items-center space-x-1.5 text-xs">
+                <span class="text-slate-400 font-medium text-[11px]">Codebase:</span>
+                <select id="chat-repo-selector" onchange="handleChatRepoChange(event)" class="bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 font-mono text-xs font-semibold rounded px-2 py-0.5 focus:outline-none focus:border-indigo-400 cursor-pointer">
+                  <!-- Dynamically populated -->
+                </select>
+                <button onclick="openNewChatModal('github')" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium underline ml-1" title="Clone another repo from GitHub">
+                  + Add Repo
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 text-xs shrink-0">
+              <span class="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center space-x-1 text-[10px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Fast Streaming</span>
+              </span>
+              <button onclick="clearCurrentChatMessages()" class="text-slate-400 hover:text-rose-400 transition flex items-center space-x-1 text-xs" title="Clear current messages">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Chat Messages Container (The ONLY scrollable region!) -->
+          <div id="chat-messages" class="p-5 space-y-4 scrollbar-thin">
+            <!-- Messages rendered dynamically -->
+          </div>
+
+          <!-- Generation Status Bar (shrink-0) -->
+          <div id="generation-status-bar" class="hidden px-5 py-2 bg-indigo-950/60 border-t border-indigo-500/20 flex items-center justify-between text-xs text-indigo-300 shrink-0">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-400"></i>
+              <span id="generation-status-text">Analyzing codebase & streaming answer...</span>
+              <span id="generation-timer" class="font-mono bg-indigo-900/60 px-1.5 py-0.5 rounded text-[11px] text-indigo-200">0.0s</span>
+            </div>
+            <button onclick="abortCurrentGeneration()" class="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] transition">
+              Stop Generating
+            </button>
+          </div>
+
+          <!-- Chat Input Bar (PERMANENTLY PINNED AT THE BOTTOM OF THE VIEWPORT!) -->
+          <div id="chat-input-container" class="p-3 bg-slate-900/95 border-t border-slate-800/90 shrink-0">
+            <form onsubmit="handleChatSubmit(event)" class="max-w-4xl mx-auto flex flex-col space-y-1.5">
+              
+              <!-- Mode & Speed Model Selector -->
+              <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <div class="flex items-center space-x-4">
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="radio" name="chatMode" value="rag" checked class="text-indigo-600 focus:ring-0">
+                    <span class="font-medium text-slate-200 text-xs">⚡ Direct RAG</span>
+                  </label>
+                  <label class="flex items-center space-x-1.5 cursor-pointer">
+                    <input type="radio" name="chatMode" value="agent" class="text-indigo-600 focus:ring-0">
+                    <span class="text-xs">🧠 Autonomous Agent</span>
+                  </label>
+                </div>
+                
+                <!-- Speed Model Switcher -->
+                <div class="flex items-center space-x-1.5 text-[11px]">
+                  <span>Model:</span>
+                  <select id="chat-model-override" class="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[11px] focus:outline-none focus:border-indigo-500 cursor-pointer">
+                    <option value="qwen2.5-coder:3b" selected>⚡ Qwen2.5-Coder 3B (Sub-5s)</option>
+                    <option value="qwen2.5-coder:7b">🧠 Qwen2.5-Coder 7B (Deep)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Input Box -->
+              <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 rounded-xl p-1.5 focus-within:border-indigo-500 transition shadow-inner relative">
+                <input 
+                  type="text" 
+                  id="chat-input" 
+                  placeholder="Ask anything about this codebase (e.g. 'tell me full about the project', 'Explain UserService')..." 
+                  class="flex-1 bg-transparent px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+                  autocomplete="off"
+                >
+                
+                <button 
+                  type="submit" 
+                  id="chat-send-btn" 
+                  class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-lg font-medium text-xs transition flex items-center space-x-1.5 shadow"
+                >
+                  <span id="chat-send-btn-text">Send</span>
+                  <i data-lucide="send" id="chat-send-btn-icon" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- Concurrency Notice -->
+              <p id="chat-busy-hint" class="hidden text-[10px] text-amber-400/90 text-center">
+                ⚠️ Generating answer... Please wait for completion before asking another question.
+              </p>
+            </form>
+          </div>
+        </section>
+
+        <!-- TAB 2: HYBRID SEARCH -->
+        <section id="tab-search" class="hidden flex-1 p-6 flex flex-col h-full min-h-0 overflow-hidden">
+          <div class="max-w-5xl w-full mx-auto flex flex-col h-full min-h-0 space-y-4">
+            <div>
+              <h2 class="text-sm font-bold text-slate-100">Hybrid Code Search</h2>
+              <p class="text-xs text-slate-400">FAISS dense vectors + BM25 keywords + AST symbols combined via Reciprocal Rank Fusion.</p>
+            </div>
+
+            <form onsubmit="handleSearchSubmit(event)" class="flex space-x-2 shrink-0">
+              <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500"></i>
+                <input type="text" id="search-input" placeholder="Enter keywords, symbols, or queries (e.g. 'TreeSitterManager', 'embed_batch', 'temporal_service')..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+              </div>
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+                <span>Search</span>
+              </button>
+            </form>
+
+            <div id="search-results" class="flex-1 min-h-0 overflow-y-auto space-y-3 scrollbar-thin">
+              <div class="text-center py-12 text-slate-500 text-xs">Enter a search query above to see ranked code snippets and matched symbols.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: DEPENDENCY GRAPH -->
+        <section id="tab-graph" class="hidden flex-1 p-6 overflow-y-auto min-h-0 scrollbar-thin">
+          <div class="max-w-5xl mx-auto space-y-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-sm font-bold text-slate-100">Repository Dependency Graph</h2>
+                <p class="text-xs text-slate-400">Architectural modules, import dependencies, and PageRank centrality hubs.</p>
+              </div>
+              <button onclick="loadDependencyGraph()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg border border-slate-700 flex items-center space-x-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh Graph</span>
+              </button>
+            </div>
+
+            <!-- Central Hubs Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="graph-hubs-container">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Dependency Edges Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+              <div class="px-4 py-2.5 bg-slate-850 border-b border-slate-800 font-semibold text-xs text-slate-300">
+                Discovered File-to-File Import Relationships
+              </div>
+              <div class="overflow-x-auto max-h-96">
+                <table class="w-full text-left text-xs text-slate-300" id="dep-table">
+                  <thead class="bg-slate-900 text-slate-400 sticky top-0 border-b border-slate-800">
+                    <tr>
+                      <th class="px-4 py-2">Source File (Importer)</th>
+                      <th class="px-4 py-2">Target File (Imported)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60" id="dep-table-body">
+                    <tr><td colspan="2" class="px-4 py-6 text-center text-slate-500">Loading dependencies...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: CHANGE IMPACT ANALYSIS -->
+        <section id="tab-impact" class="hidden flex-1 p-6 overflow-y-auto min-h-0 scrollbar-thin">
+          <div class="max-w-4xl mx-auto space-y-6">
+            <div>
+              <h2 class="text-sm font-bold text-slate-100">Change Impact & Blast Radius Analysis</h2>
+              <p class="text-xs text-slate-400">Predict what components and callers will break before modifying a file or function.</p>
+            </div>
+
+            <form onsubmit="handleImpactSubmit(event)" class="flex space-x-2">
+              <input type="text" id="impact-target" placeholder="Enter file path or function (e.g. 'backend/models/repository_index.py' or 'load_index')..." class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+              <button type="submit" class="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+                <i data-lucide="activity" class="w-4 h-4"></i>
+                <span>Analyze Impact</span>
+              </button>
+            </form>
+
+            <div id="impact-results" class="hidden space-y-4">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: REPOSITORY MANAGER -->
+        <section id="tab-repo" class="hidden flex-1 p-6 overflow-y-auto min-h-0 scrollbar-thin">
+          <div class="max-w-4xl mx-auto space-y-6">
+            <div>
+              <h2 class="text-sm font-bold text-slate-100">Codebase Management & Multi-Repo Indexing</h2>
+              <p class="text-xs text-slate-400">Clone codebases from GitHub or index local folders into the copilot.</p>
+            </div>
+
+            <!-- All Available Repositories Card Grid -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-slate-200">Available Indexed Codebases</h3>
+                <button onclick="loadAvailableRepos()" class="text-xs text-slate-400 hover:text-slate-200 flex items-center space-x-1">
+                  <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  <span>Refresh List</span>
+                </button>
+              </div>
+              <div id="repo-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Clone & Index from GitHub -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950/40 border border-indigo-500/30 rounded-xl p-5 space-y-4 shadow-lg">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="github" class="w-5 h-5 text-indigo-400"></i>
+                <h3 class="text-xs font-semibold text-slate-100">Clone & Index from GitHub</h3>
+              </div>
+              <p class="text-xs text-slate-400">Paste any public GitHub repository link (e.g. <code class="text-indigo-300 font-mono">https://github.com/sohanmogalapalli/NeuroVault</code>). The copilot will shallow-clone it, parse ASTs, and enable you to create isolated chats on it.</p>
+              <form onsubmit="handleGithubCloneSubmit(event)" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs text-slate-400 mb-1">GitHub Repository URL</label>
+                    <input type="text" id="github-url-input" placeholder="https://github.com/owner/repository" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1">Branch (Optional)</label>
+                    <input type="text" id="github-branch-input" placeholder="main" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                  </div>
+                </div>
+                <button type="submit" id="github-clone-btn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2 shadow">
+                  <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                  <span>Clone & Start Indexing</span>
+                </button>
+                <div id="github-progress-status" class="hidden text-xs px-3 py-2.5 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 flex items-center space-x-2">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+                  <span id="github-progress-text">Cloning repository from GitHub...</span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Index Local Repo Form -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+              <h3 class="text-xs font-semibold text-slate-200">Index Local Repository</h3>
+              <form onsubmit="handleIndexSubmit(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Local Directory Path</label>
+                  <input type="text" id="repo-index-path" value="c:\Users\Sohan\Desktop\ai-project" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit" id="index-submit-btn" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span>Start Full Indexing Pipeline</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Comprehensive New Chat Modal (With GitHub, Local, & Existing Options) -->
+  <div id="new-chat-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-1.5 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-lg">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          </div>
+          <h3 class="font-bold text-slate-100 text-sm">Create New Chat Session</h3>
+        </div>
+        <button onclick="closeNewChatModal()" class="text-slate-500 hover:text-slate-300 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Option Selector Tabs -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Choose Codebase Source:</label>
+        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+          <button type="button" id="modal-tab-existing" onclick="setNewChatSource('existing')" class="py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">
+            📁 Existing Repo
+          </button>
+          <button type="button" id="modal-tab-github" onclick="setNewChatSource('github')" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition">
+            🌐 GitHub Link
+          </button>
+          <button type="button" id="modal-tab-local" onclick="setNewChatSource('local')" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition">
+            💻 Local Path
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 1: Existing Repo -->
+      <div id="modal-panel-existing" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Select Already Indexed Codebase:</label>
+          <select id="modal-existing-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <p class="text-[11px] text-slate-500">Starts an isolated chat on this codebase instantly.</p>
+      </div>
+
+      <!-- Panel 2: GitHub URL -->
+      <div id="modal-panel-github" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Paste GitHub Repository URL:</label>
+          <input type="text" id="modal-github-url" placeholder="https://github.com/owner/repository" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Branch / Tag (Optional):</label>
+          <input type="text" id="modal-github-branch" placeholder="main" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <p class="text-[11px] text-slate-500">Clones the repo, runs AST extraction, builds vector embeddings, and opens a new chat.</p>
+      </div>
+
+      <!-- Panel 3: Local Folder -->
+      <div id="modal-panel-local" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Local Directory Path:</label>
+          <input type="text" id="modal-local-path" placeholder="C:\Users\...\my-project" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+        <p class="text-[11px] text-slate-500">Scans files, extracts call graphs, generates embeddings, and starts a new chat.</p>
+      </div>
+
+      <!-- Chat Title -->
+      <div class="pt-2 border-t border-slate-800/80">
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Chat Title (Optional):</label>
+        <input type="text" id="modal-chat-title" placeholder="e.g. Memory Infrastructure, Auth Flow Debugging..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <!-- Live Progress Status -->
+      <div id="modal-progress-box" class="hidden p-3 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs flex items-center space-x-2">
+        <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-indigo-400 shrink-0"></i>
+        <span id="modal-progress-text">Cloning repository & generating embeddings...</span>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+        <button onclick="closeNewChatModal()" class="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition">
+          Cancel
+        </button>
+        <button id="modal-create-btn" onclick="submitNewChatModal()" class="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition shadow flex items-center space-x-1.5">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Start Chat</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frontend Logic & State Management -->
+  <script>
+    // --- Application State ---
+    let currentTab = 'chat';
+    let availableRepos = [];
+    let chats = [];
+    let currentChatId = null;
+    let isGenerating = false;
+    let abortController = null;
+    let timerInterval = null;
+    let generationStartTime = 0;
+    let newChatSourceType = 'existing';
+
+    // --- Tab Switching ---
+    function switchTab(tab) {
+      ['chat', 'search', 'graph', 'impact', 'repo'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).className = 'w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:bg-slate-850 hover:text-slate-200';
+      });
+
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).className = 'w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600/10 text-indigo-400 border border-indigo-500/20';
+      currentTab = tab;
+
+      if (tab === 'graph') loadDependencyGraph();
+      if (tab === 'repo') { loadAvailableRepos(); }
+    }
+
+    // --- Multi-Chat Storage Management ---
+    function loadChatsFromStorage() {
+      try {
+        const raw = localStorage.getItem('copilot_chats_v4');
+        if (raw) {
+          chats = JSON.parse(raw);
+        }
+      } catch (e) {
+        chats = [];
+      }
+
+      if (!chats || chats.length === 0) {
+        createNewChatInternal(availableRepos[0] ? availableRepos[0].name : 'NeuroVault', 'Chat 1', false);
+      } else {
+        const savedId = localStorage.getItem('copilot_active_chat_id_v4');
+        const found = chats.find(c => c.id === savedId);
+        currentChatId = found ? found.id : chats[0].id;
+        renderChatsList();
+        renderCurrentChat();
+      }
+    }
+
+    function saveChatsToStorage() {
+      localStorage.setItem('copilot_chats_v4', JSON.stringify(chats));
+      if (currentChatId) {
+        localStorage.setItem('copilot_active_chat_id_v4', currentChatId);
+      }
+    }
+
+    // --- New Chat Modal Handler (GitHub, Local, or Existing) ---
+    function openNewChatModal(defaultTab = 'existing') {
+      const modal = document.getElementById('new-chat-modal');
+      const select = document.getElementById('modal-existing-select');
+      const titleInput = document.getElementById('modal-chat-title');
+      const githubInput = document.getElementById('modal-github-url');
+      const localInput = document.getElementById('modal-local-path');
+      const progressBox = document.getElementById('modal-progress-box');
+
+      select.innerHTML = availableRepos.map(r => `
+        <option value="${r.name}">${r.name} (${r.total_files} files)</option>
+      `).join('');
+
+      titleInput.value = '';
+      githubInput.value = '';
+      localInput.value = '';
+      progressBox.classList.add('hidden');
+
+      setNewChatSource(defaultTab);
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeNewChatModal() {
+      document.getElementById('new-chat-modal').classList.add('hidden');
+    }
+
+    function setNewChatSource(sourceType) {
+      newChatSourceType = sourceType;
+      ['existing', 'github', 'local'].forEach(s => {
+        const tabBtn = document.getElementById(`modal-tab-${s}`);
+        const panel = document.getElementById(`modal-panel-${s}`);
+        if (s === sourceType) {
+          tabBtn.className = 'py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow transition';
+          panel.classList.remove('hidden');
+        } else {
+          tabBtn.className = 'py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition';
+          panel.classList.add('hidden');
+        }
+      });
+      lucide.createIcons();
+    }
+
+    async function submitNewChatModal() {
+      const titleInput = document.getElementById('modal-chat-title');
+      const title = titleInput.value.trim();
+      const createBtn = document.getElementById('modal-create-btn');
+      const progressBox = document.getElementById('modal-progress-box');
+      const progressText = document.getElementById('modal-progress-text');
+
+      if (newChatSourceType === 'existing') {
+        const sel = document.getElementById('modal-existing-select');
+        const repo = sel.value;
+        if (!repo) {
+          alert('Please select a codebase.');
+          return;
+        }
+        createNewChatInternal(repo, title || ('Chat on ' + repo));
+        closeNewChatModal();
+      } else if (newChatSourceType === 'github') {
+        const url = document.getElementById('modal-github-url').value.trim();
+        const branch = document.getElementById('modal-github-branch').value.trim() || null;
+        if (!url) {
+          alert('Please enter a valid GitHub repository URL.');
+          return;
+        }
+
+        createBtn.disabled = true;
+        createBtn.classList.add('opacity-50');
+        progressBox.classList.remove('hidden');
+        progressText.innerText = 'Cloning GitHub repository & generating embeddings (~15-20s)...';
+
+        try {
+          const res = await fetch('/api/repository/clone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ github_url: url, branch: branch, force: true })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Cloning failed');
+
+          await loadAvailableRepos();
+          createNewChatInternal(data.repository_name, title || ('Chat on ' + data.repository_name));
+          closeNewChatModal();
+        } catch (err) {
+          alert('Failed to clone repository: ' + err.message);
+        } finally {
+          createBtn.disabled = false;
+          createBtn.classList.remove('opacity-50');
+          progressBox.classList.add('hidden');
+        }
+      } else if (newChatSourceType === 'local') {
+        const path = document.getElementById('modal-local-path').value.trim();
+        if (!path) {
+          alert('Please enter a local directory path.');
+          return;
+        }
+
+        createBtn.disabled = true;
+        createBtn.classList.add('opacity-50');
+        progressBox.classList.remove('hidden');
+        progressText.innerText = 'Parsing ASTs & embedding local codebase (~10s)...';
+
+        try {
+          const res = await fetch('/api/repository/index', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repository_path: path })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Indexing failed');
+
+          await loadAvailableRepos();
+          createNewChatInternal(data.repository_name, title || ('Chat on ' + data.repository_name));
+          closeNewChatModal();
+        } catch (err) {
+          alert('Failed to index local repository: ' + err.message);
+        } finally {
+          createBtn.disabled = false;
+          createBtn.classList.remove('opacity-50');
+          progressBox.classList.add('hidden');
+        }
+      }
+    }
+
+    function createNewChatInternal(repoName, title = 'New Chat', save = true) {
+      const newChat = {
+        id: 'chat_' + Date.now(),
+        title: title,
+        repo: repoName || (availableRepos[0] ? availableRepos[0].name : 'NeuroVault'),
+        mode: 'rag',
+        createdAt: Date.now(),
+        messages: []
+      };
+
+      chats.unshift(newChat);
+      currentChatId = newChat.id;
+
+      if (save) saveChatsToStorage();
+      renderChatsList();
+      renderCurrentChat();
+      switchTab('chat');
+    }
+
+    function selectChat(chatId) {
+      if (isGenerating) {
+        alert('Please wait for the current answer to complete or stop it before switching chats.');
+        return;
+      }
+      const chat = chats.find(c => c.id === chatId);
+      if (!chat) return;
+
+      currentChatId = chat.id;
+      saveChatsToStorage();
+      renderChatsList();
+      renderCurrentChat();
+      switchTab('chat');
+    }
+
+    function deleteChat(chatId, e) {
+      if (e) e.stopPropagation();
+      if (isGenerating && currentChatId === chatId) {
+        alert('Cannot delete chat while an answer is currently generating.');
+        return;
+      }
+
+      chats = chats.filter(c => c.id !== chatId);
+      if (chats.length === 0) {
+        createNewChatInternal(availableRepos[0] ? availableRepos[0].name : 'NeuroVault', 'New Chat');
+      } else {
+        if (currentChatId === chatId) {
+          currentChatId = chats[0].id;
+        }
+        saveChatsToStorage();
+        renderChatsList();
+        renderCurrentChat();
+      }
+    }
+
+    function renameCurrentChat() {
+      const chat = getCurrentChat();
+      if (!chat) return;
+      const newTitle = prompt('Enter new chat title:', chat.title);
+      if (newTitle && newTitle.trim()) {
+        chat.title = newTitle.trim();
+        saveChatsToStorage();
+        renderChatsList();
+        renderCurrentChat();
+      }
+    }
+
+    function handleChatRepoChange(e) {
+      const chat = getCurrentChat();
+      if (!chat) return;
+      const newRepo = e.target.value;
+      if (newRepo && newRepo !== chat.repo) {
+        chat.repo = newRepo;
+        saveChatsToStorage();
+        renderChatsList();
+        if (!chat.messages || chat.messages.length === 0) {
+          renderCurrentChat();
+        }
+      }
+    }
+
+    function clearCurrentChatMessages() {
+      const chat = getCurrentChat();
+      if (!chat) return;
+      if (isGenerating) {
+        alert('Cannot clear while generating.');
+        return;
+      }
+      if (confirm('Clear all messages in this conversation?')) {
+        chat.messages = [];
+        saveChatsToStorage();
+        renderCurrentChat();
+      }
+    }
+
+    function getCurrentChat() {
+      return chats.find(c => c.id === currentChatId) || chats[0];
+    }
+
+    // --- Render Chats List in Sidebar ---
+    function renderChatsList() {
+      const container = document.getElementById('chats-list');
+      const badge = document.getElementById('chat-count-badge');
+      if (badge) badge.innerText = chats.length;
+
+      container.innerHTML = chats.map(chat => {
+        const isActive = chat.id === currentChatId;
+        const msgCount = chat.messages ? chat.messages.length : 0;
+        return `
+          <div onclick="selectChat('${chat.id}')" class="group relative flex items-center justify-between px-2.5 py-2 rounded-xl cursor-pointer transition text-xs ${
+            isActive 
+              ? 'bg-indigo-600/15 text-indigo-300 border border-indigo-500/30' 
+              : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
+          }">
+            <div class="flex items-center space-x-2 min-w-0 flex-1">
+              <i data-lucide="${isActive ? 'message-square' : 'message-circle'}" class="w-3.5 h-3.5 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-500'}"></i>
+              <div class="truncate flex-1">
+                <div class="font-medium truncate ${isActive ? 'text-slate-100 font-semibold' : 'text-slate-300'}">${escapeHtml(chat.title)}</div>
+                <div class="text-[10px] text-slate-500 flex items-center space-x-1.5 mt-0.5">
+                  <span class="font-mono text-purple-300 bg-purple-950/60 px-1 py-0.2 rounded border border-purple-800/40">${chat.repo || 'Repo'}</span>
+                  <span>• ${msgCount} msgs</span>
+                </div>
+              </div>
+            </div>
+            <button onclick="deleteChat('${chat.id}', event)" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 p-1 rounded transition" title="Delete Chat">
+              <i data-lucide="trash-2" class="w-3 h-3"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // --- Render Chat Messages ---
+    function renderCurrentChat() {
+      const chat = getCurrentChat();
+      if (!chat) return;
+
+      document.getElementById('active-chat-title').innerText = chat.title;
+
+      // Update Chat Header Codebase Dropdown
+      const repoSelect = document.getElementById('chat-repo-selector');
+      if (repoSelect) {
+        repoSelect.innerHTML = availableRepos.map(r => `
+          <option value="${r.name}" ${r.name === chat.repo ? 'selected' : ''}>
+            ${r.name}
+          </option>
+        `).join('');
+      }
+
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '';
+
+      // Welcome Banner ONLY if chat is empty
+      if (!chat.messages || chat.messages.length === 0) {
+        container.innerHTML = `
+          <div class="flex items-start space-x-3 max-w-4xl">
+            <div class="p-2 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-xl shadow-md shrink-0">
+              <i data-lucide="bot" class="w-5 h-5"></i>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 leading-relaxed shadow-sm flex-1">
+              <div class="flex items-center space-x-2 mb-2">
+                <span class="font-bold text-slate-100 text-sm">AI Codebase Copilot</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Sub-10s Isolated Chat</span>
+              </div>
+              <p class="text-slate-300 mb-3 text-xs leading-relaxed">
+                Currently querying <strong class="text-indigo-300 font-mono">${chat.repo}</strong>. You can change this chat's codebase anytime using the dropdown above.
+              </p>
+              
+              <div class="text-[11px] text-slate-400 font-semibold mb-2">Quick prompts:</div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="sendQuickPrompt('tell me full about the project')" class="bg-slate-950 hover:bg-slate-850 border border-slate-700/80 px-2.5 py-1.5 rounded-lg text-slate-200 transition text-xs flex items-center space-x-1.5 shadow-sm">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+                  <span>Tell me full about the project</span>
+                </button>
+                <button onclick="sendQuickPrompt('Explain the overall architecture and data flow of this repository.')" class="bg-slate-950 hover:bg-slate-850 border border-slate-700/80 px-2.5 py-1.5 rounded-lg text-slate-200 transition text-xs flex items-center space-x-1.5 shadow-sm">
+                  <i data-lucide="compass" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Explain repository architecture</span>
+                </button>
+                <button onclick="sendQuickPrompt('Where is authentication and database setup initialized?')" class="bg-slate-950 hover:bg-slate-850 border border-slate-700/80 px-2.5 py-1.5 rounded-lg text-slate-200 transition text-xs flex items-center space-x-1.5 shadow-sm">
+                  <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Where is DB & auth configured?</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      // Render conversation messages (Welcome banner is omitted once conversation starts)
+      chat.messages.forEach(msg => {
+        if (msg.role === 'user') {
+          appendUserMessageDOM(msg.content);
+        } else {
+          appendAssistantMessageDOM(msg.content, msg.citations, msg.steps, msg.elapsedTime, false);
+        }
+      });
+
+      container.scrollTop = container.scrollHeight;
+      lucide.createIcons();
+      hljs.highlightAll();
+      attachCopyCodeButtons();
+    }
+
+    function appendUserMessageDOM(text) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex items-start space-x-3 max-w-4xl ml-auto justify-end';
+      div.innerHTML = `
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl p-3 text-xs max-w-2xl leading-relaxed shadow-md shadow-indigo-600/15">
+          ${escapeHtml(text)}
+        </div>
+        <div class="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl shrink-0">
+          <i data-lucide="user" class="w-4 h-4"></i>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendAssistantMessageDOM(content, citations = [], steps = [], elapsedTime = null, isLive = false, msgId = null) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex items-start space-x-3 max-w-4xl';
+      const id = msgId || ('msg-' + Date.now());
+
+      let citationsHtml = '';
+      if (citations && citations.length) {
+        citationsHtml = `
+          <div class="mt-2.5 pt-2 border-t border-slate-800/80 text-xs flex flex-wrap gap-1.5 items-center">
+            <span class="text-slate-400 font-semibold mr-1 text-[11px]">Citations:</span>
+            ${citations.map(c => `
+              <span class="font-mono bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-indigo-300">
+                ${c.file}:${c.lines}
+              </span>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      let stepsHtml = '';
+      if (steps && steps.length) {
+        stepsHtml = `
+          <div class="mt-2.5 pt-2 border-t border-slate-800/80 text-xs space-y-1">
+            <span class="text-slate-400 font-semibold text-[11px]">Reasoning Steps:</span>
+            ${steps.map(s => `
+              <div class="text-slate-400 font-mono text-[10px]">
+                🔹 <b>Step ${s.step}:</b> ${s.tool || s.action || 'Analysis'}: <span class="text-indigo-300">${s.argument || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      let timerBadge = '';
+      if (elapsedTime) {
+        timerBadge = `<span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">⚡ ${elapsedTime}s</span>`;
+      }
+
+      div.innerHTML = `
+        <div class="p-2 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-xl shadow-md shrink-0">
+          <i data-lucide="bot" class="w-4 h-4"></i>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 leading-relaxed shadow-sm flex-1 space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800/60 pb-1 mb-2">
+            <span class="font-semibold text-slate-300 text-xs">Copilot Response</span>
+            <div id="${id}-header-meta" class="flex items-center space-x-2">
+              ${timerBadge}
+            </div>
+          </div>
+          <div id="${id}-content" class="prose prose-invert prose-sm max-w-none text-xs leading-relaxed">
+            ${isLive ? '<span class="inline-flex items-center space-x-2 text-slate-400 text-xs"><span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span><span>Retrieving & synthesizing code...</span></span>' : marked.parse(content || '')}
+          </div>
+          <div id="${id}-citations">
+            ${citationsHtml}
+          </div>
+          <div id="${id}-steps">
+            ${stepsHtml}
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    // --- Strict Concurrency Control & Input Toggling ---
+    function setGeneratingState(generating) {
+      isGenerating = generating;
+      const input = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('chat-send-btn');
+      const sendBtnText = document.getElementById('chat-send-btn-text');
+      const statusBar = document.getElementById('generation-status-bar');
+      const busyHint = document.getElementById('chat-busy-hint');
+
+      if (generating) {
+        input.disabled = true;
+        input.placeholder = "⏳ Copilot is answering... Please wait for completion before asking another question";
+        input.classList.add('opacity-60', 'cursor-not-allowed');
+
+        sendBtn.disabled = true;
+        sendBtnText.innerText = "Thinking...";
+        sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
+
+        statusBar.classList.remove('hidden');
+        busyHint.classList.remove('hidden');
+
+        generationStartTime = performance.now();
+        const timerSpan = document.getElementById('generation-timer');
+        timerInterval = setInterval(() => {
+          const s = ((performance.now() - generationStartTime) / 1000).toFixed(1);
+          timerSpan.innerText = `${s}s`;
+        }, 100);
+      } else {
+        input.disabled = false;
+        input.placeholder = "Ask anything about this codebase (e.g. 'tell me full about the project', 'Explain UserService')...";
+        input.classList.remove('opacity-60', 'cursor-not-allowed');
+
+        sendBtn.disabled = false;
+        sendBtnText.innerText = "Send";
+        sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+
+        statusBar.classList.add('hidden');
+        busyHint.classList.add('hidden');
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        input.focus();
+      }
+      lucide.createIcons();
+    }
+
+    function abortCurrentGeneration() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+      setGeneratingState(false);
+    }
+
+    function sendQuickPrompt(promptText) {
+      if (isGenerating) {
+        alert('Copilot is currently generating an answer. Please wait a moment.');
+        return;
+      }
+      document.getElementById('chat-input').value = promptText;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    // --- Chat Submission Flow ---
+    async function handleChatSubmit(e) {
+      if (e) e.preventDefault();
+
+      // STRICT CONCURRENCY CHECK
+      if (isGenerating) {
+        return;
+      }
+
+      const input = document.getElementById('chat-input');
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = '';
+      const mode = document.querySelector('input[name="chatMode"]:checked').value;
+      const modelOverride = document.getElementById('chat-model-override').value;
+      const chat = getCurrentChat();
+
+      // Auto-name chat from first message if still default
+      if (chat.title === 'New Chat' || chat.messages.length === 0) {
+        chat.title = query.slice(0, 30) + (query.length > 30 ? '...' : '');
+        renderChatsList();
+        document.getElementById('active-chat-title').innerText = chat.title;
+      }
+
+      // If this is the first message, clear the welcome banner from DOM
+      if (!chat.messages || chat.messages.length === 0) {
+        document.getElementById('chat-messages').innerHTML = '';
+      }
+
+      // Record User message
+      chat.messages.push({ role: 'user', content: query, timestamp: Date.now() });
+      saveChatsToStorage();
+      appendUserMessageDOM(query);
+
+      // Create Assistant Placeholder
+      setGeneratingState(true);
+      abortController = new AbortController();
+      const msgId = 'msg-' + Date.now();
+      appendAssistantMessageDOM('', [], [], null, true, msgId);
+
+      const startTime = performance.now();
+      let fullAssistantText = '';
+      let citations = [];
+      let steps = [];
+
+      try {
+        if (mode === 'agent') {
+          // ReAct Agent Mode targeting this chat's codebase
+          const res = await fetch('/api/agent/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query, max_steps: 2, repository: chat.repo }),
+            signal: abortController.signal
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Agent execution failed');
+
+          fullAssistantText = data.final_answer || 'Analysis complete.';
+          steps = data.steps || [];
+        } else {
+          // Fast Direct RAG Streaming (< 10s) targeting this chat's codebase and selected model
+          const response = await fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query, top_k: 5, repository: chat.repo, model: modelOverride }),
+            signal: abortController.signal
+          });
+
+          if (!response.ok) {
+            const errJson = await response.json();
+            throw new Error(errJson.detail || 'Streaming failed');
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          const target = document.getElementById(`${msgId}-content`);
+          target.innerHTML = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const textChunk = decoder.decode(value);
+            const lines = textChunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const event = JSON.parse(line.substring(6));
+                  if (event.type === 'token') {
+                    fullAssistantText += event.content;
+                    target.innerHTML = marked.parse(fullAssistantText);
+                    document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+                  } else if (event.type === 'metadata' && event.citations) {
+                    citations = event.citations;
+                  }
+                } catch (pe) {
+                  // Ignore partial json parse
+                }
+              }
+            }
+          }
+        }
+
+        const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+
+        // Update DOM with final rendered content & meta
+        const target = document.getElementById(`${msgId}-content`);
+        target.innerHTML = marked.parse(fullAssistantText || 'Done.');
+
+        const metaHeader = document.getElementById(`${msgId}-header-meta`);
+        if (metaHeader) {
+          metaHeader.innerHTML = `<span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">⚡ ${elapsed}s</span>`;
+        }
+
+        if (citations && citations.length) {
+          const citEl = document.getElementById(`${msgId}-citations`);
+          citEl.innerHTML = `
+            <div class="mt-2.5 pt-2 border-t border-slate-800/80 text-xs flex flex-wrap gap-1.5 items-center">
+              <span class="text-slate-400 font-semibold mr-1 text-[11px]">Citations:</span>
+              ${citations.map(c => `
+                <span class="font-mono bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-indigo-300">
+                  ${c.file}:${c.lines}
+                </span>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        if (steps && steps.length) {
+          const stepsEl = document.getElementById(`${msgId}-steps`);
+          stepsEl.innerHTML = `
+            <div class="mt-2.5 pt-2 border-t border-slate-800/80 text-xs space-y-1">
+              <span class="text-slate-400 font-semibold text-[11px]">Reasoning Steps:</span>
+              ${steps.map(s => `
+                <div class="text-slate-400 font-mono text-[10px]">
+                  🔹 <b>Step ${s.step}:</b> ${s.tool || s.action || 'Analysis'}: <span class="text-indigo-300">${s.argument || ''}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // Persist assistant message in active chat
+        chat.messages.push({
+          role: 'assistant',
+          content: fullAssistantText,
+          citations: citations,
+          steps: steps,
+          elapsedTime: elapsed,
+          timestamp: Date.now()
+        });
+        saveChatsToStorage();
+
+        hljs.highlightAll();
+        attachCopyCodeButtons();
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          const target = document.getElementById(`${msgId}-content`);
+          target.innerHTML += `<div class="text-amber-400 text-xs mt-2 italic">[Generation stopped by user]</div>`;
+        } else {
+          const target = document.getElementById(`${msgId}-content`);
+          target.innerHTML = `<div class="text-rose-400 text-xs p-2 bg-rose-950/40 rounded border border-rose-800/40">Error: ${escapeHtml(err.message)}</div>`;
+        }
+      } finally {
+        setGeneratingState(false);
+      }
+    }
+
+    // --- Copy Code Snippets to Clipboard ---
+    function attachCopyCodeButtons() {
+      document.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-code-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-code-btn';
+        btn.innerText = 'Copy';
+        btn.onclick = () => {
+          const code = pre.querySelector('code');
+          if (code) {
+            navigator.clipboard.writeText(code.innerText).then(() => {
+              btn.innerText = 'Copied!';
+              setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
+            });
+          }
+        };
+        pre.appendChild(btn);
+      });
+    }
+
+    // --- Backend Repository Listing & Management ---
+    async function loadAvailableRepos() {
+      try {
+        const res = await fetch('/api/repository/list');
+        const data = await res.json();
+        availableRepos = data.repositories || [];
+
+        // Update active chat's repo selector if present
+        const chat = getCurrentChat();
+        const repoSelect = document.getElementById('chat-repo-selector');
+        if (repoSelect && chat) {
+          repoSelect.innerHTML = availableRepos.map(r => `
+            <option value="${r.name}" ${r.name === chat.repo ? 'selected' : ''}>
+              ${r.name} (${r.total_files} files)
+            </option>
+          `).join('');
+        }
+
+        // Populate repo cards container in tab-repo
+        const container = document.getElementById('repo-cards-container');
+        if (container) {
+          container.innerHTML = availableRepos.map(r => `
+            <div class="p-4 rounded-xl border bg-slate-950 border-slate-800 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-sm text-slate-100 font-mono">${r.name}</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1 truncate" title="${r.path}">${r.path}</p>
+                <div class="flex items-center space-x-3 text-xs text-slate-500 mt-2 font-mono">
+                  <span>${r.total_files} files</span>
+                  <span>•</span>
+                  <span>${r.total_entities} symbols</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 pt-2 border-t border-slate-850">
+                <button onclick="createNewChatInternal('${r.name}', 'Chat on ${r.name}')" class="text-xs bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                  <i data-lucide="message-square-plus" class="w-3.5 h-3.5"></i>
+                  <span>Start New Chat on This Repo</span>
+                </button>
+              </div>
+            </div>
+          `).join('');
+          lucide.createIcons();
+        }
+      } catch (err) {
+        console.error('Failed to load available repos:', err);
+      }
+    }
+
+    async function handleGithubCloneSubmit(e) {
+      e.preventDefault();
+      const url = document.getElementById('github-url-input').value.trim();
+      const branch = document.getElementById('github-branch-input').value.trim() || null;
+      const btn = document.getElementById('github-clone-btn');
+      const progressBox = document.getElementById('github-progress-status');
+      const progressText = document.getElementById('github-progress-text');
+
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Cloning & Indexing...</span>`;
+      progressBox.className = 'text-xs px-3 py-2.5 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 flex items-center space-x-2';
+      progressBox.classList.remove('hidden');
+      progressText.innerText = 'Cloning GitHub repository & generating embeddings with Ollama (~20s)...';
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/repository/clone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ github_url: url, branch: branch, force: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Cloning failed');
+
+        progressText.innerText = `Success! Indexed ${data.total_files} files. Opening new chat...`;
+        await loadAvailableRepos();
+        setTimeout(() => {
+          createNewChatInternal(data.repository_name || 'ClonedRepo', `Chat on ${data.repository_name || 'GitHub'}`);
+        }, 1000);
+      } catch (err) {
+        progressBox.className = 'text-xs px-3 py-2.5 rounded-lg bg-rose-950/60 border border-rose-500/30 text-rose-300 flex items-center space-x-2';
+        progressText.innerText = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="download-cloud" class="w-4 h-4"></i><span>Clone & Start Indexing</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    async function handleIndexSubmit(e) {
+      e.preventDefault();
+      const path = document.getElementById('repo-index-path').value.trim();
+      const btn = document.getElementById('index-submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Parsing & Indexing...</span>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/repository/index', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repository_path: path })
+        });
+        const data = await res.json();
+        alert(data.message || 'Indexing complete!');
+        await loadAvailableRepos();
+        createNewChatInternal(data.repository_name, `Chat on ${data.repository_name}`);
+      } catch (err) {
+        alert('Indexing failed: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i><span>Start Full Indexing Pipeline</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    async function handleSearchSubmit(e) {
+      e.preventDefault();
+      const q = document.getElementById('search-input').value.trim();
+      if (!q) return;
+
+      const container = document.getElementById('search-results');
+      container.innerHTML = '<div class="text-center py-6 text-slate-400 text-sm">Searching...</div>';
+
+      try {
+        const res = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, top_k: 8 })
+        });
+        const data = await res.json();
+        
+        if (!data.results || data.results.length === 0) {
+          container.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">No matching code snippets found.</div>';
+          return;
+        }
+
+        container.innerHTML = data.results.map((r, i) => `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-mono text-indigo-400 font-semibold">${r.file} (${r.start_line}-${r.end_line})</span>
+              <div class="flex space-x-2">
+                <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">match: ${r.match_provenance}</span>
+                <span class="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded font-mono">score: ${r.score}</span>
+              </div>
+            </div>
+            <pre class="bg-slate-950 p-3 rounded-lg overflow-x-auto text-xs font-mono text-slate-300 border border-slate-850"><code>${escapeHtml(r.content)}</code></pre>
+          </div>
+        `).join('');
+        hljs.highlightAll();
+        attachCopyCodeButtons();
+      } catch (err) {
+        container.innerHTML = `<div class="text-red-400 text-sm">Search failed: ${err}</div>`;
+      }
+    }
+
+    async function loadDependencyGraph() {
+      try {
+        const res = await fetch('/api/analysis/dependencies');
+        const data = await res.json();
+
+        const hubs = document.getElementById('graph-hubs-container');
+        if (data.central_hubs && data.central_hubs.length) {
+          hubs.innerHTML = data.central_hubs.slice(0, 3).map((h, i) => `
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-indigo-400 font-semibold">Rank #${i+1} Central Hub</div>
+              <div class="text-sm font-bold text-slate-200 mt-1 truncate">${h.file}</div>
+              <div class="text-xs text-slate-500 mt-1 font-mono">PageRank Centrality: ${h.pagerank}</div>
+            </div>
+          `).join('');
+        }
+
+        const tbody = document.getElementById('dep-table-body');
+        if (data.edges && data.edges.length) {
+          tbody.innerHTML = data.edges.map(e => `
+            <tr class="hover:bg-slate-850/50 transition">
+              <td class="px-4 py-2 font-mono text-indigo-300">${e.source}</td>
+              <td class="px-4 py-2 font-mono text-purple-300">${e.target}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="2" class="px-4 py-6 text-center text-slate-500">No cross-module dependencies indexed.</td></tr>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleImpactSubmit(e) {
+      e.preventDefault();
+      const target = document.getElementById('impact-target').value.trim();
+      if (!target) return;
+
+      const container = document.getElementById('impact-results');
+      container.classList.remove('hidden');
+      container.innerHTML = '<div class="text-slate-400 text-sm">Calculating blast radius...</div>';
+
+      try {
+        const res = await fetch('/api/analysis/impact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: target, max_depth: 3 })
+        });
+        const data = await res.json();
+
+        let badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        if (data.risk_level === 'MEDIUM') badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        if (data.risk_level === 'HIGH' || data.risk_level === 'CRITICAL') badgeColor = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+
+        container.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-400">Target:</span>
+                <span class="text-sm font-bold text-slate-200 font-mono ml-1">${data.target}</span>
+              </div>
+              <span class="text-xs px-3 py-1 rounded-full font-bold border ${badgeColor}">
+                ${data.risk_level} RISK (Score: ${data.blast_radius_score})
+              </span>
+            </div>
+            <p class="text-xs text-slate-300">${data.explanation}</p>
+
+            <div class="border-t border-slate-800 pt-3 space-y-2">
+              <div class="text-xs font-semibold text-slate-400">Downstream Affected Files (${data.all_affected_files.length}):</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${data.all_affected_files.map(f => `<span class="text-xs bg-slate-950 border border-slate-800 text-slate-300 px-2 py-1 rounded font-mono">${f}</span>`).join('') || '<span class="text-xs text-slate-500">None</span>'}
+              </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 space-y-2">
+              <div class="text-xs font-semibold text-slate-400">Recommended Regression Tests (${data.suggested_tests.length}):</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${data.suggested_tests.map(t => `<span class="text-xs bg-emerald-950 border border-emerald-800 text-emerald-300 px-2 py-1 rounded font-mono">${t}</span>`).join('') || '<span class="text-xs text-slate-500">No matching test files found</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = `<div class="text-rose-400 text-sm">Failed to calculate impact: ${err}</div>`;
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- App Initialization ---
+    window.onload = async () => {
+      lucide.createIcons();
+      await loadAvailableRepos();
+      loadChatsFromStorage();
+    };
+  </script>
+</body>
+</html>

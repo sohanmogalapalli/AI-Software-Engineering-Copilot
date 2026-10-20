@@ -1,0 +1,31 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.idea/
+.vscode/
+data/vector_store/*
+!data/vector_store/.gitkeep
+data/chunks/*
+!data/chunks/.gitkeep
+data/indexes/*
+!data/indexes/.gitkeep
+data/repositories/*
+!data/repositories/.gitkeep
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+# Temporary files
+*.tmp
+~*
+
+# Generated Office Documents & Presentations (can be regenerated with scripts/)
+*.docx
+*.pptx
+
+# OS Specific Files
+.DS_Store
+Thumbs.db
