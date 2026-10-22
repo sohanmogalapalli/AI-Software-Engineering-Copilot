@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, Any
 from backend.models.repository_index import RepositoryIndex
 from backend.vectorstore.faiss_store import FAISSVectorStore
 from backend.vectorstore.bm25_store import BM25CodeStore
 from backend.vectorstore.retriever import HybridRetriever
 from backend.embeddings.embedding_service import EmbeddingService
-from backend.llm.ollama_client import OllamaClient
+from backend.llm.unified_client import UnifiedLLMClient
 from backend.rag.rag_pipeline import RAGPipeline
 from backend.rag.agent import CopilotAgent
 from backend.utils.config import settings
@@ -15,7 +15,7 @@ class AppState:
     faiss_store: Optional[FAISSVectorStore] = None
     bm25_store: Optional[BM25CodeStore] = None
     embedding_service: Optional[EmbeddingService] = None
-    llm_client: Optional[OllamaClient] = None
+    llm_client: Optional[UnifiedLLMClient] = None
     retriever: Optional[HybridRetriever] = None
     rag_pipeline: Optional[RAGPipeline] = None
     agent: Optional[CopilotAgent] = None
@@ -25,7 +25,7 @@ class AppState:
         """Initialize base models and attempt loading existing indexes from disk."""
         logger.info("Initializing Copilot AppState...")
         cls.embedding_service = EmbeddingService()
-        cls.llm_client = OllamaClient()
+        cls.llm_client = UnifiedLLMClient()
         cls.faiss_store = FAISSVectorStore()
         cls.bm25_store = BM25CodeStore()
 
@@ -68,7 +68,7 @@ class AppState:
         if cls.embedding_service is None:
             cls.embedding_service = EmbeddingService()
         if cls.llm_client is None:
-            cls.llm_client = OllamaClient()
+            cls.llm_client = UnifiedLLMClient()
         if cls.faiss_store is None:
             cls.faiss_store = FAISSVectorStore()
         if cls.bm25_store is None:

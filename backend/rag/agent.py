@@ -20,7 +20,7 @@ class CopilotAgent:
     def __init__(
         self,
         retriever: HybridRetriever,
-        llm_client: OllamaClient,
+        llm_client: Any,
         index: RepositoryIndex
     ):
         self.retriever = retriever
@@ -82,7 +82,14 @@ class CopilotAgent:
         except Exception as e:
             return f"Tool execution error: {e}"
 
-    def run(self, user_query: str, max_steps: int = 3) -> Dict[str, Any]:
+    def run(
+        self,
+        user_query: str,
+        max_steps: int = 3,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Run grounded multi-step reasoning loop."""
         tools_desc = """Available Tools:
 1. search_code[query] - Searches codebase using hybrid search.
@@ -123,7 +130,14 @@ Final Answer: Complete, detailed, grounded response.
 
         for step in range(max_steps):
             prompt = f"{conversation_history}\nThought:"
-            step_output = self.llm_client.generate(prompt, system=agent_system, temperature=0.1)
+            step_output = self.llm_client.generate(
+                prompt,
+                system=agent_system,
+                temperature=0.1,
+                model=model,
+                provider=provider,
+                api_key=api_key
+            )
 
             # Check if agent produced Final Answer
             if "Final Answer:" in step_output:
@@ -162,7 +176,14 @@ Final Answer: Complete, detailed, grounded response.
 
         # If loop reached max steps, synthesize final answer
         summary_prompt = f"{conversation_history}\nBased on all real observations above, produce your comprehensive Final Answer:\nFinal Answer:"
-        final_answer = self.llm_client.generate(summary_prompt, system=agent_system, temperature=0.1)
+        final_answer = self.llm_client.generate(
+            summary_prompt,
+            system=agent_system,
+            temperature=0.1,
+            model=model,
+            provider=provider,
+            api_key=api_key
+        )
         return {
             "query": user_query,
             "final_answer": final_answer,

@@ -3,6 +3,7 @@ from backend.api.search import router as search_router
 from backend.api.chat import router as chat_router
 from backend.api.analysis import router as analysis_router
 from backend.api.agent import router as agent_router
+from backend.api.settings import router as settings_router
 
 __all__ = [
     "repository_router",
@@ -10,4 +11,5 @@ __all__ = [
     "chat_router",
     "analysis_router",
     "agent_router",
+    "settings_router",
 ]

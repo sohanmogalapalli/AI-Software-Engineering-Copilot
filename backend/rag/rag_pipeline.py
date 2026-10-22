@@ -3,7 +3,6 @@ from backend.vectorstore.retriever import HybridRetriever
 from backend.rag.query_analyzer import QueryAnalyzer
 from backend.rag.context_builder import ContextBuilder
 from backend.rag.prompt_builder import PromptBuilder
-from backend.llm.ollama_client import OllamaClient
 from backend.analysis.impact_analysis import ImpactAnalysisService
 from backend.models.repository_index import RepositoryIndex
 from backend.utils.logging import logger
@@ -12,7 +11,7 @@ class RAGPipeline:
     def __init__(
         self,
         retriever: HybridRetriever,
-        llm_client: OllamaClient,
+        llm_client: Any,
         index: Optional[RepositoryIndex] = None
     ):
         self.retriever = retriever
@@ -20,7 +19,14 @@ class RAGPipeline:
         self.index = index
         self.impact_service = ImpactAnalysisService(index) if index else None
 
-    def query(self, user_query: str, top_k: int = 5) -> Dict[str, Any]:
+    def query(
+        self,
+        user_query: str,
+        top_k: int = 5,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Execute complete RAG question answering."""
         analysis = QueryAnalyzer.analyze(user_query)
         intent = analysis["primary_intent"]
@@ -39,7 +45,13 @@ class RAGPipeline:
         user_prompt = PromptBuilder.build_user_prompt(user_query, context_str, intent)
 
         # Generate response
-        response_text = self.llm_client.generate(user_prompt, system=PromptBuilder.SYSTEM_PROMPT)
+        response_text = self.llm_client.generate(
+            user_prompt,
+            system=PromptBuilder.SYSTEM_PROMPT,
+            model=model,
+            provider=provider,
+            api_key=api_key
+        )
 
         # Prepare citations
         citations = []
@@ -61,7 +73,14 @@ class RAGPipeline:
             "graph_context": extra_graph_info,
         }
 
-    def stream_query(self, user_query: str, top_k: int = 5, model: Optional[str] = None) -> Generator[Dict[str, Any], None, None]:
+    def stream_query(
+        self,
+        user_query: str,
+        top_k: int = 5,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None
+    ) -> Generator[Dict[str, Any], None, None]:
         """Stream RAG answer token-by-token."""
         analysis = QueryAnalyzer.analyze(user_query)
         intent = analysis["primary_intent"]
@@ -89,7 +108,13 @@ class RAGPipeline:
         yield {"type": "metadata", "intent": intent, "citations": citations}
 
         # Stream tokens
-        for token in self.llm_client.stream_generate(user_prompt, system=PromptBuilder.SYSTEM_PROMPT, model=model):
+        for token in self.llm_client.stream_generate(
+            user_prompt,
+            system=PromptBuilder.SYSTEM_PROMPT,
+            model=model,
+            provider=provider,
+            api_key=api_key
+        ):
             yield {"type": "token", "content": token}
 
         yield {"type": "done"}

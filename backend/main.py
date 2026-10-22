@@ -11,6 +11,7 @@ from backend.api import (
     chat_router,
     analysis_router,
     agent_router,
+    settings_router,
 )
 from backend.api.state import app_state
 from backend.utils.config import settings
@@ -47,11 +48,13 @@ app.include_router(search_router)
 app.include_router(chat_router)
 app.include_router(analysis_router)
 app.include_router(agent_router)
+app.include_router(settings_router)
 
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
+        "llm_provider": settings.LLM_PROVIDER,
         "llm_model": settings.LLM_MODEL,
         "embedding_model": settings.EMBEDDING_MODEL,
         "indexed": app_state.index is not None,

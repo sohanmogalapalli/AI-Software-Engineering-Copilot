@@ -96,11 +96,24 @@
         </div>
       </div>
       
-      <!-- Top Right Button -->
+      <!-- Top Right Controls -->
       <div class="flex items-center space-x-2.5">
+        <!-- Active Model Pill -->
+        <button onclick="openSettingsModal()" id="nav-model-pill" class="text-xs bg-slate-800/90 hover:bg-slate-750 border border-indigo-500/30 text-indigo-200 px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 shadow-sm cursor-pointer" title="Switch Model or Configure API Keys">
+          <span id="nav-model-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="nav-model-name" class="font-mono text-[11px]">⚡ Gemini Flash</span>
+          <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1 py-0.2 rounded font-semibold">Sub-1s</span>
+        </button>
+
+        <!-- Fast API Keys Button -->
+        <button onclick="openSettingsModal()" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 shadow-sm" title="Configure Cloud Models & Free API Keys">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Model Keys</span>
+        </button>
+
         <button onclick="switchTab('repo')" class="text-xs bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 shadow-sm">
           <i data-lucide="folder-git-2" class="w-3.5 h-3.5 text-indigo-400"></i>
-          <span>Codebases & GitHub</span>
+          <span>Codebases</span>
         </button>
       </div>
     </header>
@@ -231,26 +244,61 @@
           <div id="chat-input-container" class="p-3 bg-slate-900/95 border-t border-slate-800/90 shrink-0">
             <form onsubmit="handleChatSubmit(event)" class="max-w-4xl mx-auto flex flex-col space-y-1.5">
               
+              <!-- Quick Prompt Pills -->
+              <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-thin text-[11px]">
+                <span class="text-slate-500 font-semibold uppercase tracking-wider text-[10px] shrink-0 mr-0.5">Quick:</span>
+                <button type="button" onclick="sendQuickPrompt('tell me full about the project')" class="shrink-0 bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg px-2.5 py-1 transition flex items-center space-x-1 shadow-sm">
+                  <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i>
+                  <span>Project Overview</span>
+                </button>
+                <button type="button" onclick="sendQuickPrompt('Explain repository architecture, key files, and system flow')" class="shrink-0 bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg px-2.5 py-1 transition flex items-center space-x-1 shadow-sm">
+                  <i data-lucide="compass" class="w-3 h-3 text-indigo-400"></i>
+                  <span>Architecture</span>
+                </button>
+                <button type="button" onclick="sendQuickPrompt('Where is database connection and models configured?')" class="shrink-0 bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg px-2.5 py-1 transition flex items-center space-x-1 shadow-sm">
+                  <i data-lucide="database" class="w-3 h-3 text-emerald-400"></i>
+                  <span>DB & Models</span>
+                </button>
+                <button type="button" onclick="sendQuickPrompt('Check for potential bugs, concurrency issues, or unhandled errors')" class="shrink-0 bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg px-2.5 py-1 transition flex items-center space-x-1 shadow-sm">
+                  <i data-lucide="shield-alert" class="w-3 h-3 text-rose-400"></i>
+                  <span>Find Bugs</span>
+                </button>
+              </div>
+
               <!-- Mode & Speed Model Selector -->
-              <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+              <div class="flex items-center justify-between text-xs text-slate-400 px-1 pt-0.5">
                 <div class="flex items-center space-x-4">
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="radio" name="chatMode" value="rag" checked class="text-indigo-600 focus:ring-0">
-                    <span class="font-medium text-slate-200 text-xs">⚡ Direct RAG</span>
+                    <span class="font-medium text-slate-200 text-xs">⚡ Direct RAG (Sub-1s)</span>
                   </label>
                   <label class="flex items-center space-x-1.5 cursor-pointer">
                     <input type="radio" name="chatMode" value="agent" class="text-indigo-600 focus:ring-0">
-                    <span class="text-xs">🧠 Autonomous Agent</span>
+                    <span class="text-xs">🧠 Multi-Step Agent</span>
                   </label>
                 </div>
                 
                 <!-- Speed Model Switcher -->
                 <div class="flex items-center space-x-1.5 text-[11px]">
-                  <span>Model:</span>
-                  <select id="chat-model-override" class="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[11px] focus:outline-none focus:border-indigo-500 cursor-pointer">
-                    <option value="qwen2.5-coder:3b" selected>⚡ Qwen2.5-Coder 3B (Sub-5s)</option>
-                    <option value="qwen2.5-coder:7b">🧠 Qwen2.5-Coder 7B (Deep)</option>
+                  <span class="text-slate-400">Inference:</span>
+                  <select id="chat-model-override" onchange="handleModelChange(event)" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-200 text-[11px] focus:outline-none focus:border-indigo-500 cursor-pointer font-medium">
+                    <optgroup label="⚡ Ultra-Fast Cloud (Free Tier - Recommended)">
+                      <option value="gemini-3-flash-preview" selected>⚡ Google Gemini 3 Flash (Verified • Sub-1s)</option>
+                      <option value="gemini-3.1-flash-lite-preview">⚡ Google Gemini 3.1 Flash-Lite (Instant)</option>
+                      <option value="openai/gpt-oss-120b">🚀 Groq GPT-OSS 120B (Free • Ultra-Fast)</option>
+                      <option value="openai/gpt-oss-20b">🚀 Groq GPT-OSS 20B (Free • Instant)</option>
+                    </optgroup>
+                    <optgroup label="🤖 xAI Grok">
+                      <option value="grok-2-mini">🤖 xAI Grok-2 Mini</option>
+                    </optgroup>
+                    <optgroup label="💻 Local Offline (Ollama)">
+                      <option value="qwen2.5-coder:3b">💻 Qwen2.5-Coder 3B (Local)</option>
+                      <option value="qwen2.5-coder:7b">🧠 Qwen2.5-Coder 7B (Deep Local)</option>
+                    </optgroup>
                   </select>
+                  <button type="button" onclick="openSettingsModal()" class="text-slate-400 hover:text-amber-300 p-1 rounded hover:bg-slate-800 transition" title="Configure API Keys & Speed">
+                    <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-400"></i>
+                  </button>
                 </div>
               </div>
 
@@ -264,6 +312,16 @@
                   autocomplete="off"
                 >
                 
+                <button 
+                  type="button" 
+                  id="chat-stop-btn" 
+                  onclick="abortCurrentGeneration()"
+                  class="hidden bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-lg font-medium text-xs transition flex items-center space-x-1"
+                >
+                  <i data-lucide="square" class="w-3 h-3 fill-rose-300"></i>
+                  <span>Stop</span>
+                </button>
+
                 <button 
                   type="submit" 
                   id="chat-send-btn" 
@@ -526,6 +584,130 @@
           <i data-lucide="plus" class="w-3.5 h-3.5"></i>
           <span>Start Chat</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model & API Keys Settings Modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[92vh] scrollbar-thin">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 bg-gradient-to-tr from-amber-500 to-indigo-600 text-white rounded-xl shadow-md">
+            <i data-lucide="zap" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-100 text-sm">Model & Fast Inference Settings</h3>
+            <p class="text-[11px] text-slate-400">Switch to free ultra-fast cloud models (Google Gemini / Groq / Grok) or configure local models</p>
+          </div>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-500 hover:text-slate-300 p-1 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Free Cloud Speed Banner -->
+      <div class="p-3 rounded-xl bg-gradient-to-r from-indigo-950/70 via-purple-950/40 to-slate-950 border border-indigo-500/30 text-xs space-y-1.5">
+        <div class="flex items-center space-x-2 font-semibold text-indigo-300">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+          <span>Answers taking too long on local Ollama?</span>
+        </div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Local 7B models on CPU often take <b>30–90 seconds</b>. By entering a <b>Google Gemini Free API Key</b> or <b>Groq Key</b>, answers stream in <b>less than 1 second</b> (350+ tokens/sec)! Both have generous 100% free tiers with no credit card required.
+        </p>
+      </div>
+
+      <!-- Provider Tabs / Key Fields -->
+      <div class="space-y-3.5">
+        <!-- 1. Google Gemini (Recommended) -->
+        <div class="p-3.5 rounded-xl bg-slate-950 border border-indigo-500/30 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-slate-100">⚡ Google Gemini API</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">Recommended • Free</span>
+              <span id="gemini-status-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">Not configured</span>
+            </div>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-medium flex items-center space-x-1">
+              <span>Get Free Key (Google AI Studio) ↗</span>
+            </a>
+          </div>
+          <div class="relative">
+            <input type="password" id="input-gemini-key" placeholder="Paste your Gemini API Key (starts with AIzaSy...)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500 pr-16">
+            <button type="button" onclick="togglePasswordVis('input-gemini-key')" class="absolute right-2 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded bg-slate-800">Show</button>
+          </div>
+          <p class="text-[10px] text-slate-400">15 RPM & 1 Million tokens/min free tier. Instant sub-second reasoning.</p>
+        </div>
+
+        <!-- 2. Groq Cloud (Fastest LPU) -->
+        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-slate-100">🚀 Groq Cloud API</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-semibold">350+ tok/s Free</span>
+              <span id="groq-status-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">Not configured</span>
+            </div>
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="text-[11px] text-purple-400 hover:text-purple-300 underline font-medium flex items-center space-x-1">
+              <span>Get Free Groq Key ↗</span>
+            </a>
+          </div>
+          <div class="relative">
+            <input type="password" id="input-groq-key" placeholder="Paste your Groq API Key (starts with gsk_...)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-purple-500 pr-16">
+            <button type="button" onclick="togglePasswordVis('input-groq-key')" class="absolute right-2 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded bg-slate-800">Show</button>
+          </div>
+          <p class="text-[10px] text-slate-400">Free LPU inference with Llama 3.3 70B & 8B Instant models.</p>
+        </div>
+
+        <!-- 3. xAI Grok API -->
+        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-slate-100">🤖 xAI Grok API</span>
+              <span id="grok-status-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">Not configured</span>
+            </div>
+            <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" class="text-[11px] text-slate-400 hover:text-slate-300 underline font-medium">
+              <span>xAI Console ↗</span>
+            </a>
+          </div>
+          <div class="relative">
+            <input type="password" id="input-grok-key" placeholder="Paste your xAI Grok API Key (starts with xai-...)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500 pr-16">
+            <button type="button" onclick="togglePasswordVis('input-grok-key')" class="absolute right-2 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded bg-slate-800">Show</button>
+          </div>
+        </div>
+
+        <!-- 4. Default Model Selection -->
+        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <label class="block text-xs font-bold text-slate-200">Default Model to Use for All Chats:</label>
+          <select id="settings-default-model" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            <option value="gemini-3-flash-preview">⚡ Google Gemini 3 Flash (Verified - Sub-1s & Free)</option>
+            <option value="gemini-3.1-flash-lite-preview">⚡ Google Gemini 3.1 Flash-Lite (Instant & Free)</option>
+            <option value="openai/gpt-oss-120b">🚀 Groq GPT-OSS 120B (Ultra-Fast & Free)</option>
+            <option value="openai/gpt-oss-20b">🚀 Groq GPT-OSS 20B (Instant & Free)</option>
+            <option value="grok-2-mini">🤖 xAI Grok-2 Mini</option>
+            <option value="qwen2.5-coder:3b">💻 Qwen2.5-Coder 3B (Local Ollama)</option>
+            <option value="qwen2.5-coder:7b">🧠 Qwen2.5-Coder 7B (Local Ollama)</option>
+          </select>
+        </div>
+
+        <!-- Live Connection & Speed Test Box -->
+        <div id="settings-test-result" class="hidden p-3 rounded-xl border text-xs"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <button type="button" onclick="testCurrentSettingsSpeed()" id="settings-test-btn" class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-750 border border-slate-700 transition flex items-center space-x-1.5">
+          <i data-lucide="gauge" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span id="settings-test-btn-text">Test Speed & Latency</span>
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition">
+            Close
+          </button>
+          <button onclick="saveSettingsModal()" id="settings-save-btn" class="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition shadow flex items-center space-x-1.5">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Save & Apply</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1002,23 +1184,249 @@
       return id;
     }
 
+    // --- Settings & Model Management ---
+    let backendSettings = {};
+
+    async function fetchBackendSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          backendSettings = await res.json();
+          updateSettingsUI();
+        }
+      } catch (e) {
+        console.warn("Could not fetch backend settings", e);
+      }
+    }
+
+    function getProviderForModel(model) {
+      if (!model) return 'gemini';
+      const m = model.toLowerCase();
+      if (m.includes('gemini')) return 'gemini';
+      if (m.includes('groq') || m.includes('llama') || m.includes('32b')) return 'groq';
+      if (m.includes('grok')) return 'grok';
+      if (m.includes(':')) return 'ollama';
+      return 'gemini';
+    }
+
+    function getStoredApiKey(provider) {
+      return localStorage.getItem('copilot_' + provider + '_key') || '';
+    }
+
+    function updateSettingsUI() {
+      const modelOverride = document.getElementById('chat-model-override');
+      const savedModel = localStorage.getItem('copilot_active_model') || backendSettings.active_model || 'gemini-3-flash-preview';
+      
+      if (modelOverride) {
+        modelOverride.value = savedModel;
+      }
+      const settingsDef = document.getElementById('settings-default-model');
+      if (settingsDef) {
+        settingsDef.value = savedModel;
+      }
+
+      updateNavModelPill(savedModel);
+
+      const geminiBadge = document.getElementById('gemini-status-badge');
+      const groqBadge = document.getElementById('groq-status-badge');
+      const grokBadge = document.getElementById('grok-status-badge');
+
+      const localGemini = localStorage.getItem('copilot_gemini_key');
+      const localGroq = localStorage.getItem('copilot_groq_key');
+      const localGrok = localStorage.getItem('copilot_grok_key');
+
+      if (geminiBadge) {
+        const isConf = Boolean(localGemini || backendSettings?.gemini?.configured);
+        geminiBadge.className = isConf 
+          ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-semibold'
+          : 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400';
+        geminiBadge.innerText = isConf ? '✓ Configured' : 'Not configured';
+      }
+
+      if (groqBadge) {
+        const isConf = Boolean(localGroq || backendSettings?.groq?.configured);
+        groqBadge.className = isConf 
+          ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-400 font-semibold'
+          : 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400';
+        groqBadge.innerText = isConf ? '✓ Configured' : 'Not configured';
+      }
+
+      if (grokBadge) {
+        const isConf = Boolean(localGrok || backendSettings?.grok?.configured);
+        grokBadge.className = isConf 
+          ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold'
+          : 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400';
+        grokBadge.innerText = isConf ? '✓ Configured' : 'Not configured';
+      }
+
+      if (localGemini) document.getElementById('input-gemini-key').value = localGemini;
+      else if (backendSettings?.gemini?.masked) document.getElementById('input-gemini-key').placeholder = `Configured in .env (${backendSettings.gemini.masked})`;
+
+      if (localGroq) document.getElementById('input-groq-key').value = localGroq;
+      else if (backendSettings?.groq?.masked) document.getElementById('input-groq-key').placeholder = `Configured in .env (${backendSettings.groq.masked})`;
+
+      if (localGrok) document.getElementById('input-grok-key').value = localGrok;
+      else if (backendSettings?.grok?.masked) document.getElementById('input-grok-key').placeholder = `Configured in .env (${backendSettings.grok.masked})`;
+    }
+
+    function updateNavModelPill(model) {
+      const pillName = document.getElementById('nav-model-name');
+      const dot = document.getElementById('nav-model-status-dot');
+      if (!pillName) return;
+
+      const prov = getProviderForModel(model);
+      if (prov === 'gemini') {
+        pillName.innerText = '⚡ Gemini Flash (Free)';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      } else if (prov === 'groq') {
+        pillName.innerText = '🚀 Groq Cloud (Free)';
+        dot.className = 'w-2 h-2 rounded-full bg-purple-400 animate-pulse';
+      } else if (prov === 'grok') {
+        pillName.innerText = '🤖 xAI Grok';
+        dot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
+      } else {
+        pillName.innerText = '💻 Local Ollama';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+      }
+    }
+
+    function handleModelChange(e) {
+      const model = e.target.value;
+      localStorage.setItem('copilot_active_model', model);
+      updateNavModelPill(model);
+    }
+
+    function openSettingsModal() {
+      document.getElementById('settings-modal').classList.remove('hidden');
+      updateSettingsUI();
+      lucide.createIcons();
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').classList.add('hidden');
+    }
+
+    function togglePasswordVis(inputId) {
+      const input = document.getElementById(inputId);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function saveSettingsModal() {
+      const geminiKey = document.getElementById('input-gemini-key').value.trim();
+      const groqKey = document.getElementById('input-groq-key').value.trim();
+      const grokKey = document.getElementById('input-grok-key').value.trim();
+      const selectedModel = document.getElementById('settings-default-model').value;
+      const provider = getProviderForModel(selectedModel);
+
+      if (geminiKey) localStorage.setItem('copilot_gemini_key', geminiKey);
+      if (groqKey) localStorage.setItem('copilot_groq_key', groqKey);
+      if (grokKey) localStorage.setItem('copilot_grok_key', grokKey);
+      localStorage.setItem('copilot_active_model', selectedModel);
+
+      const saveBtn = document.getElementById('settings-save-btn');
+      saveBtn.innerHTML = '<span>Saving...</span>';
+
+      try {
+        const payload = {
+          model: selectedModel,
+          provider: provider
+        };
+        if (geminiKey) payload.gemini_api_key = geminiKey;
+        if (groqKey) payload.groq_api_key = groqKey;
+        if (grokKey) payload.grok_api_key = grokKey;
+
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        await fetchBackendSettings();
+
+        const overrideSel = document.getElementById('chat-model-override');
+        if (overrideSel) overrideSel.value = selectedModel;
+        updateNavModelPill(selectedModel);
+
+        closeSettingsModal();
+      } catch (e) {
+        alert('Error saving settings: ' + e.message);
+      } finally {
+        saveBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Save & Apply</span>';
+        lucide.createIcons();
+      }
+    }
+
+    async function testCurrentSettingsSpeed() {
+      const selectedModel = document.getElementById('settings-default-model').value;
+      const provider = getProviderForModel(selectedModel);
+      let apiKey = '';
+      if (provider === 'gemini') apiKey = document.getElementById('input-gemini-key').value.trim() || localStorage.getItem('copilot_gemini_key') || '';
+      if (provider === 'groq') apiKey = document.getElementById('input-groq-key').value.trim() || localStorage.getItem('copilot_groq_key') || '';
+      if (provider === 'grok') apiKey = document.getElementById('input-grok-key').value.trim() || localStorage.getItem('copilot_grok_key') || '';
+
+      const resBox = document.getElementById('settings-test-result');
+      const testBtn = document.getElementById('settings-test-btn');
+      resBox.className = 'p-3 rounded-xl border border-indigo-500/30 bg-indigo-950/40 text-xs flex items-center space-x-2 text-indigo-300';
+      resBox.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-indigo-400"></i><span>Testing latency with inference endpoint...</span>';
+      resBox.classList.remove('hidden');
+      testBtn.disabled = true;
+
+      try {
+        const resp = await fetch('/api/settings/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: provider,
+            model: selectedModel,
+            api_key: apiKey || undefined
+          })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          resBox.className = 'p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/40 text-xs text-emerald-200 space-y-1';
+          resBox.innerHTML = `
+            <div class="font-bold flex items-center space-x-1.5">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+              <span>Connection Successful!</span>
+            </div>
+            <div>Model: <b class="font-mono">${data.model}</b> | Latency: <b class="text-emerald-300 font-bold">${data.latency_ms} ms</b></div>
+            <div class="text-[11px] text-emerald-300/80">⚡ This model is verified and ready for sub-second streaming answers!</div>
+          `;
+        } else {
+          resBox.className = 'p-3 rounded-xl border border-rose-500/40 bg-rose-950/40 text-xs text-rose-200 space-y-1';
+          resBox.innerHTML = `
+            <div class="font-bold flex items-center space-x-1.5">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+              <span>Connection Failed (${data.latency_ms}ms)</span>
+            </div>
+            <div class="text-[11px] font-mono">${escapeHtml(data.error || data.message)}</div>
+          `;
+        }
+      } catch (err) {
+        resBox.className = 'p-3 rounded-xl border border-rose-500/40 bg-rose-950/40 text-xs text-rose-200';
+        resBox.innerHTML = `<span>Test error: ${escapeHtml(err.message)}</span>`;
+      } finally {
+        testBtn.disabled = false;
+        lucide.createIcons();
+      }
+    }
+
     // --- Strict Concurrency Control & Input Toggling ---
     function setGeneratingState(generating) {
       isGenerating = generating;
       const input = document.getElementById('chat-input');
       const sendBtn = document.getElementById('chat-send-btn');
-      const sendBtnText = document.getElementById('chat-send-btn-text');
+      const stopBtn = document.getElementById('chat-stop-btn');
       const statusBar = document.getElementById('generation-status-bar');
       const busyHint = document.getElementById('chat-busy-hint');
 
       if (generating) {
         input.disabled = true;
-        input.placeholder = "⏳ Copilot is answering... Please wait for completion before asking another question";
+        input.placeholder = "⏳ Copilot is streaming answer... Click Stop to abort.";
         input.classList.add('opacity-60', 'cursor-not-allowed');
 
-        sendBtn.disabled = true;
-        sendBtnText.innerText = "Thinking...";
-        sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        sendBtn.classList.add('hidden');
+        if (stopBtn) stopBtn.classList.remove('hidden');
 
         statusBar.classList.remove('hidden');
         busyHint.classList.remove('hidden');
@@ -1034,9 +1442,8 @@
         input.placeholder = "Ask anything about this codebase (e.g. 'tell me full about the project', 'Explain UserService')...";
         input.classList.remove('opacity-60', 'cursor-not-allowed');
 
-        sendBtn.disabled = false;
-        sendBtnText.innerText = "Send";
-        sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        sendBtn.classList.remove('hidden');
+        if (stopBtn) stopBtn.classList.add('hidden');
 
         statusBar.classList.add('hidden');
         busyHint.classList.add('hidden');
@@ -1060,7 +1467,6 @@
 
     function sendQuickPrompt(promptText) {
       if (isGenerating) {
-        alert('Copilot is currently generating an answer. Please wait a moment.');
         return;
       }
       document.getElementById('chat-input').value = promptText;
@@ -1071,7 +1477,6 @@
     async function handleChatSubmit(e) {
       if (e) e.preventDefault();
 
-      // STRICT CONCURRENCY CHECK
       if (isGenerating) {
         return;
       }
@@ -1083,7 +1488,29 @@
       input.value = '';
       const mode = document.querySelector('input[name="chatMode"]:checked').value;
       const modelOverride = document.getElementById('chat-model-override').value;
+      const provider = getProviderForModel(modelOverride);
+      const userApiKey = getStoredApiKey(provider);
       const chat = getCurrentChat();
+
+      // Check if user selected cloud provider without any configured key
+      const hasGemini = Boolean(userApiKey || backendSettings?.gemini?.configured);
+      const hasGroq = Boolean(userApiKey || backendSettings?.groq?.configured);
+      const hasGrok = Boolean(userApiKey || backendSettings?.grok?.configured);
+
+      if (provider === 'gemini' && !hasGemini) {
+        openSettingsModal();
+        const resBox = document.getElementById('settings-test-result');
+        resBox.className = 'p-3 rounded-xl border border-amber-500/40 bg-amber-950/40 text-xs text-amber-200';
+        resBox.innerHTML = '<span>⚡ Please enter your free Google Gemini API key to enable instant sub-second answers!</span>';
+        resBox.classList.remove('hidden');
+        return;
+      } else if (provider === 'groq' && !hasGroq) {
+        openSettingsModal();
+        return;
+      } else if (provider === 'grok' && !hasGrok) {
+        openSettingsModal();
+        return;
+      }
 
       // Auto-name chat from first message if still default
       if (chat.title === 'New Chat' || chat.messages.length === 0) {
@@ -1092,7 +1519,7 @@
         document.getElementById('active-chat-title').innerText = chat.title;
       }
 
-      // If this is the first message, clear the welcome banner from DOM
+      // Clear welcome banner from DOM if first message
       if (!chat.messages || chat.messages.length === 0) {
         document.getElementById('chat-messages').innerHTML = '';
       }
@@ -1112,14 +1539,22 @@
       let fullAssistantText = '';
       let citations = [];
       let steps = [];
+      let tokenCount = 0;
 
       try {
         if (mode === 'agent') {
-          // ReAct Agent Mode targeting this chat's codebase
+          // Autonomous Agent Mode
           const res = await fetch('/api/agent/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, max_steps: 2, repository: chat.repo }),
+            body: JSON.stringify({
+              query: query,
+              max_steps: 2,
+              repository: chat.repo,
+              model: modelOverride,
+              provider: provider,
+              api_key: userApiKey || undefined
+            }),
             signal: abortController.signal
           });
           const data = await res.json();
@@ -1128,11 +1563,18 @@
           fullAssistantText = data.final_answer || 'Analysis complete.';
           steps = data.steps || [];
         } else {
-          // Fast Direct RAG Streaming (< 10s) targeting this chat's codebase and selected model
+          // Fast Direct RAG Streaming
           const response = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, top_k: 5, repository: chat.repo, model: modelOverride }),
+            body: JSON.stringify({
+              query: query,
+              top_k: 5,
+              repository: chat.repo,
+              model: modelOverride,
+              provider: provider,
+              api_key: userApiKey || undefined
+            }),
             signal: abortController.signal
           });
 
@@ -1159,6 +1601,7 @@
                   const event = JSON.parse(line.substring(6));
                   if (event.type === 'token') {
                     fullAssistantText += event.content;
+                    tokenCount++;
                     target.innerHTML = marked.parse(fullAssistantText);
                     document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
                   } else if (event.type === 'metadata' && event.citations) {
@@ -1173,6 +1616,7 @@
         }
 
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+        const tps = elapsed > 0 && tokenCount > 0 ? (tokenCount / elapsed).toFixed(0) : '';
 
         // Update DOM with final rendered content & meta
         const target = document.getElementById(`${msgId}-content`);
@@ -1180,7 +1624,8 @@
 
         const metaHeader = document.getElementById(`${msgId}-header-meta`);
         if (metaHeader) {
-          metaHeader.innerHTML = `<span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">⚡ ${elapsed}s</span>`;
+          const tpsBadge = tps ? ` • ${tps} tok/s` : '';
+          metaHeader.innerHTML = `<span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">⚡ ${elapsed}s${tpsBadge} • ${modelOverride}</span>`;
         }
 
         if (citations && citations.length) {
@@ -1225,12 +1670,27 @@
         hljs.highlightAll();
         attachCopyCodeButtons();
       } catch (err) {
+        const target = document.getElementById(`${msgId}-content`);
         if (err.name === 'AbortError') {
-          const target = document.getElementById(`${msgId}-content`);
           target.innerHTML += `<div class="text-amber-400 text-xs mt-2 italic">[Generation stopped by user]</div>`;
         } else {
-          const target = document.getElementById(`${msgId}-content`);
-          target.innerHTML = `<div class="text-rose-400 text-xs p-2 bg-rose-950/40 rounded border border-rose-800/40">Error: ${escapeHtml(err.message)}</div>`;
+          const isKeyErr = err.message.toLowerCase().includes('key') || err.message.toLowerCase().includes('configuration error');
+          target.innerHTML = `
+            <div class="text-rose-300 text-xs p-3 bg-rose-950/40 rounded-xl border border-rose-800/40 space-y-2">
+              <div class="font-bold flex items-center space-x-1.5 text-rose-400">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span>Generation Error: ${escapeHtml(err.message)}</span>
+              </div>
+              <p class="text-slate-300 text-[11px]">
+                Tip: If your local Ollama is slow or struggling, connect Google Gemini (Free) or Groq for instant answers in under 1 second.
+              </p>
+              <button onclick="openSettingsModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow flex items-center space-x-1.5">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                <span>Configure Free Cloud API Keys in Settings</span>
+              </button>
+            </div>
+          `;
+          lucide.createIcons();
         }
       } finally {
         setGeneratingState(false);
@@ -1318,7 +1778,7 @@
       btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Cloning & Indexing...</span>`;
       progressBox.className = 'text-xs px-3 py-2.5 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 flex items-center space-x-2';
       progressBox.classList.remove('hidden');
-      progressText.innerText = 'Cloning GitHub repository & generating embeddings with Ollama (~20s)...';
+      progressText.innerText = 'Cloning GitHub repository & generating fast batched embeddings...';
       lucide.createIcons();
 
       try {
@@ -1511,6 +1971,7 @@
     // --- App Initialization ---
     window.onload = async () => {
       lucide.createIcons();
+      await fetchBackendSettings();
       await loadAvailableRepos();
       loadChatsFromStorage();
     };

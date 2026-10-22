@@ -35,8 +35,8 @@ def ensure_app_state_initialized():
         from backend.vectorstore.bm25_store import BM25CodeStore
         app_state.bm25_store = BM25CodeStore()
     if app_state.llm_client is None:
-        from backend.llm.ollama_client import OllamaClient
-        app_state.llm_client = OllamaClient()
+        from backend.llm.unified_client import UnifiedLLMClient
+        app_state.llm_client = UnifiedLLMClient()
 
 def _run_indexing_job(repo_path: str):
     root_path = Path(repo_path).resolve()

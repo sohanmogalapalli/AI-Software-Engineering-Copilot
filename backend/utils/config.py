@@ -1,3 +1,4 @@
+from typing import Optional
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
@@ -5,10 +6,19 @@ from pydantic import Field
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
+    # LLM Provider & Model Configuration
+    # Options: "auto", "gemini", "groq", "grok", "ollama"
+    LLM_PROVIDER: str = Field(default="gemini")
+    LLM_MODEL: str = Field(default="gemini-3-flash-preview")
+    EMBEDDING_MODEL: str = Field(default="nomic-embed-text:latest")
+    
+    # Cloud API Keys
+    GEMINI_API_KEY: Optional[str] = Field(default=None)
+    GROK_API_KEY: Optional[str] = Field(default=None)
+    GROQ_API_KEY: Optional[str] = Field(default=None)
+
     # Ollama Local Service Configuration
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
-    LLM_MODEL: str = Field(default="qwen2.5-coder:7b")
-    EMBEDDING_MODEL: str = Field(default="nomic-embed-text:latest")
     
     # Storage Paths (relative to PROJECT_ROOT or absolute)
     VECTOR_STORE_PATH: str = Field(default="data/vector_store")

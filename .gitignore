@@ -6,6 +6,7 @@ __pycache__/
 .env
 .idea/
 .vscode/
+.vs/
 data/vector_store/*
 !data/vector_store/.gitkeep
 data/chunks/*
