@@ -2,46 +2,57 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3_Flash-4285F4.svg)](https://aistudio.google.com/)
+[![Groq](https://img.shields.io/badge/Groq-LPU_Inference-F55036.svg)](https://console.groq.com/)
 [![Tree-sitter](https://img.shields.io/badge/Tree--sitter-AST-orange.svg)](https://tree-sitter.github.io/)
 [![FAISS](https://img.shields.io/badge/FAISS-Vector_Store-blueviolet.svg)](https://github.com/facebookresearch/faiss)
-[![Ollama](https://img.shields.io/badge/Ollama-Qwen2.5--Coder-black.svg)](https://ollama.ai)
+[![Ollama](https://img.shields.io/badge/Ollama-Offline_Local-black.svg)](https://ollama.ai)
 
-An enterprise-grade, **Repository-Aware RAG Intelligent Developer Assistant** that understands entire software repositories using multi-language Abstract Syntax Tree (AST) parsing, call and dependency graph analysis, context-enriched breadcrumb chunking, hybrid code retrieval, and local LLM reasoning.
+An enterprise-grade, **Repository-Aware RAG Intelligent Developer Assistant** that understands entire software codebases using multi-language Abstract Syntax Tree (AST) parsing, call and dependency graph analysis, context-enriched breadcrumb chunking, hybrid retrieval (FAISS + BM25), and sub-second multi-model reasoning powered by **Google Gemini**, **Groq Cloud**, **xAI Grok**, and **Local Ollama**.
 
 ---
 
 ## 🌟 Key Features
 
-1. **Multi-Language AST Analysis (Tree-sitter)**
-   - Extracts classes, methods, functions, docstrings, type annotations, decorators, line ranges, imports, and cross-function calls.
-   - Built-in support for Python, TypeScript, JavaScript, Java, C++, C, Go, and Rust.
+1. **Ultra-Fast Sub-Second Inference (< 1s Streaming)**
+   - **Multi-Model Routing:** Seamlessly switch between **Google Gemini 3 Flash**, **Groq LPU (GPT-OSS)**, **xAI Grok**, or **Local Ollama (Qwen2.5-Coder)**.
+   - **Real-Time Streaming Metrics:** Live tokens/second calculation (`~150–350 tok/s`), live generation timer, and immediate **Stop** generation button.
 
-2. **Context-Enriched Breadcrumb Chunking**
+2. **Batched Cloud Embeddings (Instant Codebase Indexing)**
+   - High-speed batched embedding via Google Cloud (`gemini-embedding-001` with exact 768-dim FAISS alignment).
+   - Reduces repository cloning and indexing time from **several minutes down to ~2–5 seconds**.
+   - Automatic local fallback to Ollama (`nomic-embed-text`) when offline.
+
+3. **Multi-Language AST Analysis (Tree-sitter)**
+   - Extracts classes, methods, functions, docstrings, type annotations, decorators, line ranges, imports, and cross-function calls.
+   - Built-in support for **Python, TypeScript, JavaScript, Java, C++, C, Go, and Rust**.
+
+4. **Context-Enriched Breadcrumb Chunking**
    - Eliminates out-of-context code snippets by attaching hierarchical scope headers (`# File: ... # Class Scope: ... # Decorators: ... # Imports: ...`) to every chunk before embedding.
 
-3. **Hybrid Code Retrieval & Reciprocal Rank Fusion (RRF)**
-   - **Dense Semantic Retrieval:** FAISS vector similarity search using `nomic-embed-text`.
+5. **Hybrid Code Retrieval & Reciprocal Rank Fusion (RRF)**
+   - **Dense Semantic Retrieval:** 768-dimensional FAISS vector similarity search.
    - **Lexical Keyword Retrieval:** Custom BM25 Okapi code search engine with camelCase and snake_case identifier tokenization.
    - **Exact Symbol Boost:** Automatically matches query symbols to exact AST entity definitions.
-   - **RRF:** Blends dense, sparse, and symbol results into a unified, high-precision rank list.
+   - **RRF Ranking:** Blends dense, sparse, and symbol results into a unified, high-precision rank list.
 
-4. **Program Graph & Change Impact Analysis**
+6. **Program Graph & Change Impact Analysis**
    - **Dependency Graph:** NetworkX-powered file import graph detecting circular dependencies and calculating PageRank architecture hubs.
    - **Call Graph:** Inter-function caller/callee resolution.
-   - **Blast Radius Impact Analysis:** Predicts affected downstream modules, callers, risk level (LOW $\rightarrow$ CRITICAL), and recommends test cases before making changes.
+   - **Blast Radius Impact Analysis:** Predicts affected downstream modules, callers, risk level (LOW $\rightarrow$ CRITICAL), and recommends test files before making changes.
 
-5. **Dual Reasoning Engines**
-   - **Repository-Grounded RAG:** High-speed streaming RAG grounded strictly in retrieved repository code with exact citations (`file:start-end`).
-   - **Autonomous ReAct Agent:** Multi-step autonomous agent that executes tools (`search_code`, `get_symbol_callers`, `get_dependencies`, `read_file`, `get_impact`) to solve complex architectural questions.
+7. **Dual Reasoning Modes**
+   - **⚡ Direct RAG Streaming:** Ultra-fast sub-second answers grounded strictly in retrieved code with exact citations (`file:start-end`).
+   - **🧠 Autonomous ReAct Agent:** Multi-step autonomous agent that executes tools (`search_code`, `get_symbol_callers`, `get_dependencies`, `read_file`, `get_impact`) to solve complex architectural questions.
 
-6. **Modern Dark-Mode Web Interface**
-   - Single-page application with real-time SSE token streaming, syntax-highlighted code snippets, hybrid search explorer, dependency viewer, impact calculator, and repository manager.
+8. **Modern Dark-Mode Web Interface**
+   - Built-in **Model & API Keys Configuration Modal** with live connection speed & latency testing.
+   - 1-click **Quick Prompt Chips** (Project Overview, Architecture, DB & Models, Find Bugs).
+   - Multi-chat isolation with repository switching, syntax highlighting, and 1-click code copying.
 
 ---
 
 ## 🏗️ Architecture
-
-![Architecture Diagram](docs/architecture_diagram.png)
 
 ```
                        ┌──────────────────────┐
@@ -73,10 +84,16 @@ An enterprise-grade, **Repository-Aware RAG Intelligent Developer Assistant** th
                                   │
                                   ▼
                          ┌─────────────────┐
-                         │   Local Ollama  │
-                         │ Qwen2.5-Coder   │
+                         │   Unified LLM   │
+                         │     Router      │
                          └────────┬────────┘
-                                  │
+          ┌───────────────────────┼───────────────────────┐
+          ▼                       ▼                       ▼
+ ┌────────────────┐      ┌────────────────┐      ┌────────────────┐
+ │ Google Gemini  │      │   Groq Cloud   │      │  Local Ollama  │
+ │ 3 Flash (Free) │      │  LPU Inference │      │  (Offline)     │
+ └────────┬───────┘      └────────┬───────┘      └────────┬───────┘
+          └───────────────────────┼───────────────────────┘
                                   ▼
                          ┌─────────────────┐
                          │ Grounded Answer │
@@ -88,33 +105,44 @@ An enterprise-grade, **Repository-Aware RAG Intelligent Developer Assistant** th
 
 ## 🚀 Quickstart
 
-### 1. Requirements & Ollama Setup
-Ensure [Ollama](https://ollama.ai) is installed and pull the required models:
-```bash
-ollama pull qwen2.5-coder:7b
-ollama pull nomic-embed-text:latest
-```
-
-### 2. Install Python Dependencies
+### 1. Install Python Dependencies
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-### 3. Index Your Repository (Local or GitHub)
-Index the local codebase:
+### 2. Configure Environment (Optional but Recommended)
+Copy the example environment file:
 ```bash
-python scripts/index_repository.py
+cp .env.example .env
 ```
-Or paste any public GitHub repository URL directly:
-```bash
-python scripts/index_repository.py "https://github.com/pallets/flask"
+Paste your free API keys into `.env` (or configure them directly in the Web UI):
+```env
+# Google AI Studio free key (https://aistudio.google.com/apikey):
+GEMINI_API_KEY=your_gemini_key_here
+
+# Groq Cloud free key (https://console.groq.com/keys):
+GROQ_API_KEY=your_groq_key_here
 ```
 
-### 4. Launch the Copilot Web UI
+> **Note:** If you prefer running 100% locally and offline, start [Ollama](https://ollama.ai) with:
+> `ollama pull qwen2.5-coder:7b` and `ollama pull nomic-embed-text:latest`.
+
+### 3. Launch the Copilot Web UI
 ```bash
 python run.py
 ```
 Open your browser at **`http://localhost:8000`**.
+
+### 4. Index a Repository
+- **From the Web UI:** Click **"+ New Chat"** $\rightarrow$ select **"GitHub Link"** or **"Local Path"** to clone and index automatically.
+- **Or via CLI:**
+  ```bash
+  # Index a local directory:
+  python scripts/index_repository.py
+
+  # Or clone & index any public GitHub repo:
+  python scripts/index_repository.py "https://github.com/pallets/flask"
+  ```
 
 ---
 
@@ -125,13 +153,13 @@ Open your browser at **`http://localhost:8000`**.
 python scripts/query_copilot.py "Where is the Tree-sitter parser initialized?"
 ```
 
-### Evaluation Benchmark
-Run the automated retrieval benchmark measuring Hit Rate@K and Mean Reciprocal Rank (MRR):
+### Retrieval Evaluation Benchmark
+Run the automated benchmark measuring Hit Rate@K and Mean Reciprocal Rank (MRR):
 ```bash
 python scripts/evaluate_copilot.py
 ```
 
-### Run Automated Tests
+### Run Automated Unit & API Tests
 ```bash
 python -m pytest -v
 ```
@@ -142,15 +170,19 @@ python -m pytest -v
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/repository/index` | Parse AST, chunk, and index a local repository path |
-| `POST` | `/api/repository/clone` | Shallow-clone and index any public GitHub repository |
-| `GET` | `/api/repository/status` | Get current indexed repository statistics |
-| `POST` | `/api/search` | Execute hybrid search (FAISS + BM25 + Symbol) |
-| `POST` | `/api/chat` | Complete grounded RAG query |
 | `POST` | `/api/chat/stream` | Stream RAG response tokens via Server-Sent Events (SSE) |
+| `POST` | `/api/chat` | Synchronous grounded RAG query |
+| `POST` | `/api/agent/run` | Execute autonomous multi-step ReAct reasoning |
+| `GET` | `/api/settings` | Get active provider, configured key status, and model catalog |
+| `POST` | `/api/settings` | Update runtime API keys, default provider, and model |
+| `POST` | `/api/settings/test` | Test live inference connectivity and measure latency (ms) |
+| `POST` | `/api/repository/clone` | Shallow-clone (`--depth 1`) and index any GitHub repo |
+| `POST` | `/api/repository/index` | Parse AST, chunk, and index a local repository path |
+| `GET` | `/api/repository/list` | List all indexed repositories on disk |
+| `GET` | `/api/repository/status` | Get current indexed repository statistics |
+| `POST` | `/api/search` | Execute hybrid search (FAISS + BM25 + Symbol definition) |
 | `GET` | `/api/analysis/dependencies` | Get dependency graph nodes, edges, and PageRank hubs |
 | `POST` | `/api/analysis/impact` | Calculate change blast radius and affected callers |
-| `POST` | `/api/agent/run` | Execute autonomous multi-step ReAct reasoning |
 
 ---
 
